@@ -79,7 +79,7 @@ userSchema.methods.generateAccessToken = function () {
   );
 };
 
-userSchema.methods.generateAccessToken = function () {
+userSchema.methods.generateRefreshToken = function () {
   // short lived access token
   return jwt.sign(
     {
