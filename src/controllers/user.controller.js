@@ -90,9 +90,9 @@ const loginUser = asyncHandler(async (req, res) => {
   const { email, username, password } = req.body;
 
   // validation
-  if (!email || !username)
-    throw new ApiError(405, "Email or Username is required");
-
+  if (!email || !username) {
+    throw new ApiError(400, "Email or Username is required");
+  }
   // check if user exists
   const user = await User.findOne({
     $or: [{ username }, { email }],
@@ -101,30 +101,29 @@ const loginUser = asyncHandler(async (req, res) => {
 
   // validate password
   const isPasswordValid = await user.isPasswordCorrect(password);
-
   if (!isPasswordValid) throw new ApiError(400, "Invalid credentials");
 
+  // generate tokens
   const { accessToken, refreshToken } = await generateAccessAndRefreshToken(
     user._id
   );
 
+  // fetch user data without sensitive fields
   const loggedInUser = await User.findById(user._id).select(
     "-password -refreshToken"
   );
-
   if (!loggedInUser) throw new ApiError(500, "Something went wrong");
 
+  // set cookies
   const options = {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
   };
   return res
     .status(200)
-    .cookie("accessToken, accessToken, options")
+    .cookie("accessToken", accessToken, options)
     .cookie("refreshToken", refreshToken, options)
-    .json(
-      new ApiResponse(200, loggedInUser, "Logged in successfully", loggedInUser)
-    );
+    .json(new ApiResponse(200, loggedInUser, "Logged in successfully"));
 });
 
 const logoutUser = asyncHandler(async (req, res) => {
@@ -346,7 +345,7 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, "Channel found", channel[0]));
 });
 
-const getWatchHistory = asyncHandler(async (req, res) => {
+const getWatchHistoryWithVideos = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
@@ -404,6 +403,6 @@ export {
   updateAccountDetails,
   updateUserAvatar,
   updateUserCoverImage,
-  getWatchHistory,
   getWatchHistoryWithVideos,
+  getUserChannelProfile,
 };
