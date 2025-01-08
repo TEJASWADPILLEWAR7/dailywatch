@@ -4,10 +4,12 @@ import { User } from "../models/user.models.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { uploadOnCloudinary } from "../utils/clouudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/clouudinary.js";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query;
   //TODO: get all videos based on query, sort, pagination
   app.get("/videos", async (req, res) => {
     const {
@@ -62,7 +64,43 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 const publishAVideo = asyncHandler(async (req, res) => {
   const { title, description } = req.body;
-  // TODO: get video, upload to cloudinary, create video
+
+  if (!title || !description) {
+    throw new ApiError(400, "Title and description are required");
+  }
+
+  const videoLocalPath = req.files?.videoFile?.[0]?.path;
+  const thumbnailLocalPath = req.files?.thumbnail?.[0]?.path;
+
+  if (!videoLocalPath) throw new ApiError(400, "Video is required");
+  if (!thumbnailLocalPath) throw new ApiError(400, "Thumbnail is required");
+
+  const publishVideo = await uploadOnCloudinary(videoLocalPath);
+  const publishThumbnail = await uploadOnCloudinary(thumbnailLocalPath);
+
+  try {
+    const video = new Video({
+      title,
+      description,
+      duration: publishVideo.duration,
+      videoFile: publishVideo.secure_url,
+      thumbnail: publishThumbnail.secure_url,
+    });
+    await video.save();
+
+    return res
+      .status(201)
+      .json(new ApiResponse(200, video, "Video created successfully"));
+  } catch (error) {
+    console.log("Video upload failed");
+    if (publishVideo) {
+      await deleteFromCloudinary(publishVideo.public_id);
+    }
+    if (publishThumbnail) {
+      await deleteFromCloudinary(publishThumbnail.public_id);
+    }
+    return res.status(500).json(new ApiError(500, null, "Video upload failed"));
+  }
 });
 
 const getVideoById = asyncHandler(async (req, res) => {
