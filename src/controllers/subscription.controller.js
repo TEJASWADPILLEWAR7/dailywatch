@@ -9,8 +9,8 @@ const asyncHandler = require("express-async-handler");
 const Subscription = require("../models/Subscription"); // Adjust the path as needed
 
 const toggleSubscription = asyncHandler(async (req, res) => {
-  const { channelId } = req.params; // The channel the user wants to subscribe/unsubscribe to
-  const userId = req.user._id; // Assuming authenticated user's ID is available in req.user
+  const { channelId } = req.params;
+  const userId = req.user._id;
 
   // Check if a subscription already exists
   const existingSubscription = await Subscription.findOne({
@@ -19,12 +19,12 @@ const toggleSubscription = asyncHandler(async (req, res) => {
   });
 
   if (existingSubscription) {
-    // Unsubscribe (delete the existing subscription)
+    // Unsubscribe
     await existingSubscription.deleteOne();
     return res.status(200).json({ message: "Unsubscribed successfully" });
   }
 
-  // Subscribe (create a new subscription)
+  // Subscribe
   const newSubscription = await Subscription.create({
     subscriber: userId,
     channel: channelId,
