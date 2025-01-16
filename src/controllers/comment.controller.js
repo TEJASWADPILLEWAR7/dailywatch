@@ -59,15 +59,103 @@ const getVideoComments = asyncHandler(async (req, res) => {
 });
 
 const addComment = asyncHandler(async (req, res) => {
-  // TODO: add a comment to a video
+  const { videoId, content, parentId } = req.body;
+
+  // Validation
+  if (!videoId || !content) {
+    res.status(400);
+    throw new Error("Video ID and content are required.");
+  }
+
+  try {
+    // Create a new comment object
+    const newComment = await Comment.create({
+      videoId,
+      content,
+      userId: req.user.id, // Assuming `req.user` contains authenticated user info
+      parentId: parentId || null, // Optional parent comment for replies
+    });
+
+    // Send the newly created comment as a response
+    res.status(201).json({
+      success: true,
+      message: "Comment added successfully.",
+      data: newComment,
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to add comment. Please try again.");
+  }
 });
 
 const updateComment = asyncHandler(async (req, res) => {
-  // TODO: update a comment
+  const { commentId } = req.params;
+  const { content } = req.body;
+
+  // Validation
+  if (!content) {
+    res.status(400);
+    throw new Error("Content is required to update the comment.");
+  }
+
+  try {
+    // Find the comment by ID
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      res.status(404);
+      throw new Error("Comment not found.");
+    }
+
+    // Ensure the user is the author of the comment
+    if (comment.userId.toString() !== req.user.id) {
+      res.status(403);
+      throw new Error("You are not authorized to update this comment.");
+    }
+
+    // Update the comment content
+    comment.content = content;
+    const updatedComment = await comment.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Comment updated successfully.",
+      data: updatedComment,
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to update comment. Please try again.");
+  }
 });
 
 const deleteComment = asyncHandler(async (req, res) => {
-  // TODO: delete a comment
-});
+  const { commentId } = req.params;
 
+  try {
+    // Find the comment by ID
+    const comment = await Comment.findById(commentId);
+
+    if (!comment) {
+      res.status(404);
+      throw new Error("Comment not found.");
+    }
+
+    // Ensure the user is the author of the comment
+    if (comment.userId.toString() !== req.user.id) {
+      res.status(403);
+      throw new Error("You are not authorized to delete this comment.");
+    }
+
+    // Delete the comment
+    await comment.remove();
+
+    res.status(200).json({
+      success: true,
+      message: "Comment deleted successfully.",
+    });
+  } catch (error) {
+    res.status(500);
+    throw new Error("Failed to delete comment. Please try again.");
+  }
+});
 export { getVideoComments, addComment, updateComment, deleteComment };
