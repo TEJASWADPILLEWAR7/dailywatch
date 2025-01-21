@@ -88,7 +88,7 @@ const getLikedComment = asyncHandler(async (req, res) => {
     .populate("comment")
     .select("comment -_id");
 
-  if (!likedVideos.length) {
+  if (!likedcomment.length) {
     return res.status(404).json(new ApiResponse(404, "No liked comment found"));
   }
 
@@ -101,7 +101,7 @@ const getLikedTweet = asyncHandler(async (req, res) => {
     .populate("tweet")
     .select("tweet -_id");
 
-  if (!likedVideos.length) {
+  if (!likedTweet.length) {
     return res.status(404).json(new ApiResponse(404, "No liked Tweet found"));
   }
 
